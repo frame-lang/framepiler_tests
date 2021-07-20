@@ -9,5 +9,8 @@
   },
   "author": "",
   "license": "ISC",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "async": "^3.2.0"
+  }
 }

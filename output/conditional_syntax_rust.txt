@@ -1,0 +1,21 @@
+starting...
+enter $BooleanConditionals
+was true
+was true
+exit $BooleanConditionals
+Hi Elizabeth
+Hi Robert
+Who are you?
+Hi Elizabeth
+Hi Elizabeth
+Hi Robert
+Hi Robert
+Who are you?
+It's a 1
+It's a 2
+It's a lot
+It's a lot
+It's a 1.0 or 2.0
+It's over 100.0 a bit
+It's a different number
+It's false. Stopping now.

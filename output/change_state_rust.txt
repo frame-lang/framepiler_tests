@@ -1,0 +1,3 @@
+Exiting S0
+Entering $S1
+Changing state to $S0 from $S1
