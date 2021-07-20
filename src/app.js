@@ -42,6 +42,7 @@ const execShellCommand = (cmd) => {
 
 (async () => {
   // All files for test
+  console.log(`\n================== Started ${new Date()} ==================`);
   const testFiles = await readDir(testFilesPath)
   console.log(`Found total ${testFiles.length} files to be processed.`);
 
@@ -145,7 +146,28 @@ const execShellCommand = (cmd) => {
     });
   });
 
-  console.log('\n====== Complete ======\n', finalReport);
+  console.log('\n================== Final Report ==================');
+  console.log(`\n--> Processed files with no errors and matched outputs: ${finalReport['processed'].length}`);
+  finalReport['processed'].forEach((processedFile, index) => {
+    console.log(`${index + 1}. ${processedFile}`);
+  })
+
+  console.log(`\n--> Non processed files due to some errors: ${Object.keys(finalReport['notProcessed']).length}`);
+  for (let [index, [key, value]]  of Object.entries(Object.entries(finalReport['notProcessed']))) {
+    console.log(`${Number(index) + 1}. ${key}: Reson -> ${value}`);
+  }
+
+  console.log(`\n--> File where output is not matched from stored once: ${Object.keys(finalReport['notMatched']).length}`);
+  if (Object.keys(finalReport['notMatched']).length) {
+    for (let [index, [key, value]]  of Object.entries(Object.entries(finalReport['notMatched']))) {
+      console.log(`${Number(index) + 1}. ${key}`);
+      console.log('Stored output:\n', value.previous);
+      console.log('Current output:\n', value.current);
+    }
+  }
+
+  console.log(`\n================== Complete ${new Date()} ==================`);
+
 })()
 
 

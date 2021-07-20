@@ -1,2 +1,11 @@
 /node_modules
 /temp
+
+*.cpp
+*.cs
+*.gd 
+*.java
+*.js
+*.py
+*.rs
+*.frm
