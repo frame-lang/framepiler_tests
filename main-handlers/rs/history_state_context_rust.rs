@@ -1,9 +1,12 @@
 fn main() {
-    let mut test = HistoryBasic::new();
+    let mut test = HistoryStateContext::new();
     test.start();
+    test.switchState();
     test.gotoDeadEnd();
+
     test.back();
     test.switchState();
     test.gotoDeadEnd();
+
     test.back();
 }

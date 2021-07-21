@@ -1,0 +1,6 @@
+Enter $S0
+Enter $DeadEnd
+Enter $S0
+Enter $S1
+Enter $DeadEnd
+Enter $S1

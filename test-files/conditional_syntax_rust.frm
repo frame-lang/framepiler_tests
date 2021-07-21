@@ -4,6 +4,9 @@
 #![allow(unused_mut)]
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(unused_imports)]
+#![allow(unused_parens)]
+
 ```
 --- Rust Playground
 --- https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=2cf0a947f195af2c9febf8abb5e44214

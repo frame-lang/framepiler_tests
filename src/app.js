@@ -4,6 +4,9 @@ import * as fs from 'fs'
 import { promisify } from 'util'
 import { eachSeries } from 'async'
 
+import { sendMail } from './mailer.js'
+import { logPath, logger } from './logger/index.js'
+
 // File system variables
 const writeFile = promisify(fs.writeFile)
 const readFile = promisify(fs.readFile)
@@ -23,13 +26,13 @@ const outputPath = normalize(`${basePath}/output`)
 // List of all target languages (id = file extension, fullName = framec language transpile code)
 const testTypeList = [
   {id: 'rs', fullName: 'rust'}
-];
+]
 
 const finalReport = {
   processed: [],
   notProcessed: {},
   notMatched: {}
-};
+}
 
 const execShellCommand = (cmd) => {
   return new Promise((res, rej) => {
@@ -40,31 +43,51 @@ const execShellCommand = (cmd) => {
   })
 }
 
+const compileRustFile = async (fullPath, fileNameWithoutExt) => {
+  const rustBuildCmd = `rustc --out-dir ${tempPath} ${fullPath}`
+  const [errorRustBuild, ] = await execShellCommand(rustBuildCmd)
+  if (errorRustBuild) {
+    logger.error('Error while building rust:', errorRustBuild)
+    const binaryGenerated = await fileExists(normalize(`${tempPath}/${fileNameWithoutExt}`))
+    if (!binaryGenerated) {
+      return [true, null]
+    }
+  }
+  await deleteFile(fullPath)
+  const rustExeCmd = normalize(`${tempPath}/${fileNameWithoutExt}`)
+  const [errorRustExe, rustOutput] = await execShellCommand(rustExeCmd)
+  if (errorRustExe) {
+    return [true, null]
+  }
+  await deleteFile(`${tempPath}/${fileNameWithoutExt}`)
+  return [null, rustOutput]
+}
+
 (async () => {
   // All files for test
-  console.log(`\n================== Started ${new Date()} ==================`);
+  logger.info(`================== Started ${new Date()} ==================\n`)
   const testFiles = await readDir(testFilesPath)
-  console.log(`Found total ${testFiles.length} files to be processed.`);
+  logger.info(`Found total ${testFiles.length} files to be processed.`)
 
   await eachSeries(testFiles, async (testFile) => {
-    console.log(`\n====== Processing file: ${testFile} ======`);
+    logger.info(`====== Processing file: ${testFile} ======`)
     const filePath = normalize(`${testFilesPath}/${testFile}`)
 
     if (extname(filePath) !== '.frm') {
       finalReport['notProcessed'][testFile] = 'Not a frame spec.'
-      console.log('Error occured: Not a frame spec.');
+      logger.error('Error occured: Not a frame spec.\n')
       return
     }
 
     await eachSeries(testTypeList, async (type) => {
       try {
-        console.log(`--> Target: ${type.fullName}`)
+        logger.info(`--> Target: ${type.fullName}`)
         // Execute command with framec executable
         const command = `${framecPath} ${filePath} ${type.fullName}`
         const [errWhileFramepile, framepiledCode] = await execShellCommand(command)
         if (errWhileFramepile) {
           finalReport['notProcessed'][testFile] = `Error while framepiling the file in ${type.fullName} target`
-          console.log(`Error while framepiling the file in ${type.fullName} target`);
+          logger.error(`Error while framepiling the file in ${type.fullName} target\n`)
           return
         }
 
@@ -80,8 +103,8 @@ const execShellCommand = (cmd) => {
         const mainHandlerExists = await fileExists(mainFile)
         if (!mainHandlerExists) {
           finalReport['notProcessed'][testFile] = 'Main handler file not exists.'
-          console.log('Main handler file not exists.');
-          await deleteFile(fullPath);
+          logger.error('Main handler file not exists.\n')
+          await deleteFile(fullPath)
           return
         }
         const mainContent = await readFile(mainFile, 'utf-8')
@@ -92,28 +115,18 @@ const execShellCommand = (cmd) => {
 
         // Get current file results after compiling
         if (type.fullName === 'rust') {
-          const rustBuildCmd = `rustc --out-dir ${tempPath} ${fullPath}`
-          const [errorRustBuild, ] = await execShellCommand(rustBuildCmd)
-          if (errorRustBuild) {
+          const [errWhileCompileRust, rustOutput] = await compileRustFile(fullPath, fileNameWithoutExt)
+          if (errWhileCompileRust) {
             finalReport['notProcessed'][testFile] = `Error while compiling the file in ${type.fullName} target.`
-            console.log(`Error while compiling the file in ${type.fullName} target.`);
+            logger.error(`Error while compiling the file in ${type.fullName} target.\n`)
             return
           }
-          await deleteFile(fullPath);
-          const rustExeCmd = normalize(`${tempPath}/${fileNameWithoutExt}`)
-          const [errorRustExe, rustOutput] = await execShellCommand(rustExeCmd)
-          if (errorRustExe) {
-            finalReport['notProcessed'][testFile] = `Error while executing the file in ${type.fullName} target.`
-            console.log(`Error while executing the file in ${type.fullName} target.`);
-            return
-          }
-          await deleteFile(`${tempPath}/${fileNameWithoutExt}`);
           currentOutput = rustOutput
         } else {
           const [errorWhileExe, fileOutput] = await execShellCommand(`node ${fullPath}`)
           if (errorWhileExe) {
-            finalReport['notProcessed'][testFile] = `Error while executing the file in ${type.fullName} target. Error: ${errorRustExe}`
-            console.log(`Error while executing the file in ${type.fullName} target. Error: ${errorRustExe}`);
+            finalReport['notProcessed'][testFile] = `Error while executing the file in ${type.fullName} target. Error: ${errorWhileExe}`
+            logger.error(`Error while executing the file in ${type.fullName} target. Error: ${errorWhileExe}\n`)
             return
           }
           currentOutput = fileOutput
@@ -123,7 +136,7 @@ const execShellCommand = (cmd) => {
         const outputFileExists = await fileExists(outputFile)
         if (!outputFileExists) {
           finalReport['notProcessed'][testFile] = 'Output file not exists.'
-          console.log('Output file not exists.');
+          logger.error('Output file not exists.\n')
           return
         }
         const outputContent = await readFile(outputFile, 'utf-8')
@@ -137,37 +150,50 @@ const execShellCommand = (cmd) => {
             current: currentOutput.trim()
           }
         }
-        console.log('Processed successfully.')
+        logger.info('Processed successfully.\n')
       } catch (err) {
         finalReport['notProcessed'][testFile] = `Error while processing the file in ${type.fullName} target. Error: ${err}`
-        console.log(`Error while processing file ${testFile}`, err)
+        logger.error(`Error while processing file ${testFile}`, err, '\n')
         return
       }
-    });
-  });
-
-  console.log('\n================== Final Report ==================');
-  console.log(`\n--> Processed files with no errors and matched outputs: ${finalReport['processed'].length}`);
-  finalReport['processed'].forEach((processedFile, index) => {
-    console.log(`${index + 1}. ${processedFile}`);
+    })
   })
 
-  console.log(`\n--> Non processed files due to some errors: ${Object.keys(finalReport['notProcessed']).length}`);
+  let finalReportLog = '\n================== Final Report ==================\n'
+  finalReportLog += `\n--> Processed files with no errors and matched outputs: ${finalReport['processed'].length}\n`;
+
+  finalReport['processed'].forEach((processedFile, index) => {
+    finalReportLog += `${index + 1}. ${processedFile}\n`
+  })
+
+
+  finalReportLog += `\n--> Non processed files due to some errors: ${Object.keys(finalReport['notProcessed']).length}\n`
+  
+  
   for (let [index, [key, value]]  of Object.entries(Object.entries(finalReport['notProcessed']))) {
-    console.log(`${Number(index) + 1}. ${key}: Reson -> ${value}`);
+    finalReportLog += `${Number(index) + 1}. ${key}: Reason -> ${value}\n`
   }
 
-  console.log(`\n--> File where output is not matched from stored once: ${Object.keys(finalReport['notMatched']).length}`);
+  finalReportLog += `\n--> File where output is not matched from stored once: ${Object.keys(finalReport['notMatched']).length}\n`
   if (Object.keys(finalReport['notMatched']).length) {
     for (let [index, [key, value]]  of Object.entries(Object.entries(finalReport['notMatched']))) {
-      console.log(`${Number(index) + 1}. ${key}`);
-      console.log('Stored output:\n', value.previous);
-      console.log('Current output:\n', value.current);
+      finalReportLog += `${Number(index) + 1}. ${key}\n`
+      finalReportLog += 'Stored output:\n'
+      finalReportLog += value.previous + '\n'
+      finalReportLog += 'Current output:\n'
+      finalReportLog += value.current + '\n'
     }
   }
 
-  console.log(`\n================== Complete ${new Date()} ==================`);
+  logger.info(finalReportLog)
 
+  logger.info(`================== Complete ${new Date()} ==================`)
+
+  // Send mail for production only
+  if (process.env.NODE_ENV === 'production') {
+    const logFullPath = `${basePath}/${logPath}`
+    sendMail(logFullPath)
+  }
 })()
 
 
