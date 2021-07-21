@@ -1,4 +1,5 @@
-import winston from 'winston'
+const winston = require('winston')
+
 
 const getLogPath = () => {
     // const date = new Date()
@@ -30,7 +31,7 @@ const buildProdLogger = () => {
     return winston.createLogger(logConfiguration)
 }
 
-export {
+module.exports = {
     logPath,
-    buildProdLogger
+    buildProdLogger 
 }

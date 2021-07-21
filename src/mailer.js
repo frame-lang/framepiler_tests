@@ -1,19 +1,12 @@
-import { createTransport } from 'nodemailer'
-import dotenv from 'dotenv'
+const { createTransport } = require('nodemailer')
+const dotenv = require('dotenv')
 
 dotenv.config();
 // import hbs from 'nodemailer-express-handlebars'
 // declare vars,
 let from = process.env.MAIL_FROM;
-let to = process.env.MAIL_TO.split(',');
-let subject = 'Frame test suite Report';
-let text = `
-Hi,
-
-Please find the attached report generated for the test suite available.
-
-Regards
-` 
+let to = process.env.MAIL_TO.split(',')
+let subject = 'Frame test suite Report'
 
 const transporter = createTransport({
     service: 'gmail',
@@ -33,11 +26,11 @@ let mailOptions = {
     from,
     to,
     subject,
-    text,
     template: 'index'
 };
 
-const sendMail = (logPath) => {
+const sendMail = (logPath, mailContent) => {
+    mailOptions['text'] = mailContent
     mailOptions['attachments'] = [
         {
             path: logPath
@@ -52,6 +45,6 @@ const sendMail = (logPath) => {
     });
 }
 
-export {
+module.exports = {
     sendMail
-};
+}

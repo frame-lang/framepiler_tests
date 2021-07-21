@@ -1,11 +1,10 @@
-import { exec } from 'child_process'
-import { normalize, resolve, basename, extname } from 'path'
-import * as fs from 'fs'
-import { promisify } from 'util'
-import { eachSeries } from 'async'
-
-import { sendMail } from './mailer.js'
-import { logPath, logger } from './logger/index.js'
+const { exec } = require('child_process')
+const { normalize, resolve, basename, extname }  = require('path')
+const fs  = require('fs')
+const { promisify }  = require('util')
+const { eachSeries }  = require('async')
+const { sendMail }  = require('./mailer.js')
+const { logPath, logger }  = require('./logger/index.js')
 
 // File system variables
 const writeFile = promisify(fs.writeFile)
@@ -28,6 +27,7 @@ const testTypeList = [
   {id: 'rs', fullName: 'rust'}
 ]
 
+let errorInTestSuite = false
 const finalReport = {
   processed: [],
   notProcessed: {},
@@ -62,6 +62,30 @@ const compileRustFile = async (fullPath, fileNameWithoutExt) => {
   await deleteFile(`${tempPath}/${fileNameWithoutExt}`)
   return [null, rustOutput]
 }
+
+const getMailContent = () => {
+  let content = `
+  Hi,
+
+  Please find the attached report generated for the test suite available.
+  All files are successfully processed without any errors.
+
+  Regards
+  `
+
+  if (errorInTestSuite) {
+    content = `
+    Hi,
+  
+    Please find the attached report generated for the test suite available.
+    The test suite is consists with errors. Please take a look on the logs.
+  
+    Regards
+    `
+  }
+  return content
+}
+
 
 (async () => {
   // All files for test
@@ -168,10 +192,11 @@ const compileRustFile = async (fullPath, fileNameWithoutExt) => {
 
 
   finalReportLog += `\n--> Non processed files due to some errors: ${Object.keys(finalReport['notProcessed']).length}\n`
-  
-  
-  for (let [index, [key, value]]  of Object.entries(Object.entries(finalReport['notProcessed']))) {
-    finalReportLog += `${Number(index) + 1}. ${key}: Reason -> ${value}\n`
+  if (Object.keys(finalReport['notProcessed']).length) {
+    errorInTestSuite = true
+    for (let [index, [key, value]]  of Object.entries(Object.entries(finalReport['notProcessed']))) {
+      finalReportLog += `${Number(index) + 1}. ${key}: Reason -> ${value}\n`
+    }
   }
 
   finalReportLog += `\n--> File where output is not matched from stored once: ${Object.keys(finalReport['notMatched']).length}\n`
@@ -192,7 +217,8 @@ const compileRustFile = async (fullPath, fileNameWithoutExt) => {
   // Send mail for production only
   if (process.env.NODE_ENV === 'production') {
     const logFullPath = `${basePath}/${logPath}`
-    sendMail(logFullPath)
+    const mailContent = getMailContent()
+    sendMail(logFullPath, mailContent)
   }
 })()
 

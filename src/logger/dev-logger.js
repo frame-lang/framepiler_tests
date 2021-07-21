@@ -1,6 +1,6 @@
-import winston from 'winston';
+const winston = require('winston')
 
-const buildDevLogger = () => {
+module.exports.buildDevLogger = () => {
     const logConfiguration = {
         'transports': [
             new winston.transports.Console()
@@ -18,5 +18,3 @@ const buildDevLogger = () => {
     
     return winston.createLogger(logConfiguration);
 }
-
-export default buildDevLogger

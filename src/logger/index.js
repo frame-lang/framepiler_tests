@@ -1,5 +1,5 @@
-import buildDevLogger from './dev-logger.js'
-import { logPath, buildProdLogger } from './prod-logger.js'
+const { buildDevLogger } = require('./dev-logger.js')
+const { logPath, buildProdLogger } = require('./prod-logger.js')
 
 const env = process.env.NODE_ENV
 
@@ -7,7 +7,7 @@ const logger = env === 'production'
                ? buildProdLogger()
                : buildDevLogger()
 
-export {
+module.exports = {
     logPath,
     logger
 }
