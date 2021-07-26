@@ -63,29 +63,6 @@ const compileRustFile = async (fullPath, fileNameWithoutExt) => {
   return [null, rustOutput]
 }
 
-const getMailContent = () => {
-  let content = `
-  Hi,
-
-  Please find the attached report generated for the test suite available.
-  All files are successfully processed without any errors.
-
-  Regards
-  `
-
-  if (errorInTestSuite) {
-    content = `
-    Hi,
-  
-    Please find the attached report generated for the test suite available.
-    The test suite is consists with errors. Please take a look on the logs.
-  
-    Regards
-    `
-  }
-  return content
-}
-
 
 (async () => {
   // All files for test
@@ -217,8 +194,7 @@ const getMailContent = () => {
   // Send mail for production only
   if (process.env.NODE_ENV === 'production') {
     const logFullPath = `${basePath}/${logPath}`
-    const mailContent = getMailContent()
-    sendMail(logFullPath, mailContent)
+    sendMail(logFullPath, errorInTestSuite)
   }
 })()
 
