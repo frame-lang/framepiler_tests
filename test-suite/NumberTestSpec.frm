@@ -18,7 +18,7 @@
 
     $NumberTest
         |>>|
-            number?#
+            getSize() ?#
                 /1|2/   -> "1|2"  $Small  :>
                 /10/  -> "10" $Medium :>
                 /100/   -> "100"  $Large 
@@ -44,8 +44,8 @@
         println!("{}", &format!("{}",msg));
     `}
 
-    -domain-
-
-    var number = 1
+    getSize[] : u8 {`
+        1
+    `}
 
 ##

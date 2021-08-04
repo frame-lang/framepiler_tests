@@ -201,8 +201,10 @@ const compileRustFile = async (fullPath, fileNameWithoutExt) => {
 
   // Send mail for production only
   if (process.env.NODE_ENV === 'production') {
-    const logFullPath = `${basePath}/${logPath}`
-    sendMail(logFullPath, errorInTestSuite)
+    setTimeout(() => {
+      const logFullPath = `${basePath}/${logPath}`
+      sendMail(logFullPath, errorInTestSuite)
+    }, 2000)
   }
 })()
 
