@@ -1,0 +1,3 @@
+Domain Variable
+Event Handler Variable
+State Variable

@@ -18,7 +18,7 @@ const deleteFile = promisify(fs.unlink)
 const basePath = resolve()
 const framecPath = normalize(`${basePath}/framec`)
 const tempPath = normalize(`${basePath}/temp`)
-const testFilesPath = normalize(`${basePath}/test-files`)
+const testSuitePath = normalize(`${basePath}/test-suite`)
 const mainHandlerPath = normalize(`${basePath}/main-handlers`)
 const outputPath = normalize(`${basePath}/output`)
 
@@ -30,6 +30,7 @@ const testTypeList = [
 let errorInTestSuite = false
 const finalReport = {
   processed: [],
+  noMainHandler: [],
   notProcessed: {},
   notMatched: {}
 }
@@ -67,12 +68,12 @@ const compileRustFile = async (fullPath, fileNameWithoutExt) => {
 (async () => {
   // All files for test
   logger.info(`================== Started ${new Date()} ==================\n`)
-  const testFiles = await readDir(testFilesPath)
+  const testFiles = await readDir(testSuitePath)
   logger.info(`Found total ${testFiles.length} files to be processed.`)
 
   await eachSeries(testFiles, async (testFile) => {
     logger.info(`====== Processing file: ${testFile} ======`)
-    const filePath = normalize(`${testFilesPath}/${testFile}`)
+    const filePath = normalize(`${testSuitePath}/${testFile}`)
 
     if (extname(filePath) !== '.frm') {
       finalReport['notProcessed'][testFile] = 'Not a frame spec.'
@@ -103,8 +104,9 @@ const compileRustFile = async (fullPath, fileNameWithoutExt) => {
         // fileExists(mainFile)
         const mainHandlerExists = await fileExists(mainFile)
         if (!mainHandlerExists) {
-          finalReport['notProcessed'][testFile] = 'Main handler file not exists.'
-          logger.error('Main handler file not exists.\n')
+          
+          finalReport['noMainHandler'].push(testFile)
+          logger.info('Main handler file not exists.\n')
           await deleteFile(fullPath)
           return
         }
@@ -186,6 +188,12 @@ const compileRustFile = async (fullPath, fileNameWithoutExt) => {
       finalReportLog += value.current + '\n'
     }
   }
+
+  finalReportLog += `\n--> Files with no Main Handler: ${finalReport['noMainHandler'].length}\n`;
+
+  finalReport['noMainHandler'].forEach((file, index) => {
+    finalReportLog += `${index + 1}. ${file}\n`
+  })
 
   logger.info(finalReportLog)
 
