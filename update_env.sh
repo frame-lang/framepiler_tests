@@ -1,5 +1,5 @@
 #! /bin/sh
-file=.env1
+file=.env
 MAIL_FROM=$1
 MAIL_TO=$2
 MAILGUN_API_KEY=$3
